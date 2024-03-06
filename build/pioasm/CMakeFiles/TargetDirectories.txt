@@ -1,0 +1,3 @@
+/home/scott/Documents/rp-pico-rfm69-driver/build/pioasm/CMakeFiles/pioasm.dir
+/home/scott/Documents/rp-pico-rfm69-driver/build/pioasm/CMakeFiles/edit_cache.dir
+/home/scott/Documents/rp-pico-rfm69-driver/build/pioasm/CMakeFiles/rebuild_cache.dir
