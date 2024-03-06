@@ -68,7 +68,7 @@ int main()
 
     rfm69_set_tx_power(&rfm69, 14, true);
 
-    rfm69_dump_registers(&rfm69);
+    rfm69_print_registers(&rfm69);
 
     while (true)
     {   

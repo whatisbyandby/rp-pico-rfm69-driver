@@ -36,6 +36,6 @@ rfm69_error_t rfm69_send(rfm69_t *rfm69, uint8_t *data, uint8_t len);
 
 rfm69_error_t rfm69_set_tx_power(rfm69_t *rfm69, uint8_t tx_power, bool is_high_power_module);
 
-rfm69_error_t rfm69_dump_registers(rfm69_t *rfm69);
+rfm69_error_t rfm69_print_registers(rfm69_t *rfm69);
 
 #endif // RFM69_H

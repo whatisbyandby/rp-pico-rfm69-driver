@@ -38,15 +38,6 @@ rfm69_error_t read_register(rfm69_t *rfm69, uint8_t addr, uint8_t *data)
     return success ? RFM69_OK : RFM69_SPI_READ_ERROR;
 }
 
-rfm69_error_t transfer(rfm69_t *rfm69, uint8_t addr, uint8_t *src, uint8_t *dest, uint8_t len)
-{
-    cs_select(rfm69);
-    uint8_t write_addr[1] = {addr | RF69_WRITE_MASK};
-    spi_write_blocking(rfm69->spi, write_addr, 1);
-    spi_write_read_blocking(rfm69->spi, src, dest, len);
-    cs_deselect(rfm69);
-}
-
 rfm69_error_t write_packet(rfm69_t *rfm69, uint8_t *data, uint8_t len)
 {
     cs_select(rfm69);
@@ -249,7 +240,7 @@ rfm69_error_t rfm69_init(rfm69_t *rfm69)
     // Set the preamble length
     error = rfm69_set_preamble_length(rfm69, 4);
 
-    // Set the frequency
+    // Set the default frequency
     error = rfm69_set_frequency(rfm69, 915.0);
 
     return error;
@@ -267,7 +258,7 @@ rfm69_error_t rfm69_send(rfm69_t *rfm69, uint8_t *data, uint8_t len)
     rfm69_error_t err = rfm69_set_mode(rfm69, RF_OPMODE_TRANSMITTER);
 }
 
-rfm69_error_t rfm69_dump_registers(rfm69_t *rfm69)
+rfm69_error_t rfm69_print_registers(rfm69_t *rfm69)
 {
     for(int i = 0; i < 0x50; i++){
         uint8_t data;
