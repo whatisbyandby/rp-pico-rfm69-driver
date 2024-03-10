@@ -1,10 +1,10 @@
-#include "rfm69_gpt.h"
-
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
 #include <stdio.h>
 #include "rfm69.h"
 #include "string.h"
+
+static rfm69_t *rfm69_inst;
 
 static inline void cs_select(rfm69_t *rfm69)
 {
@@ -200,11 +200,52 @@ rfm69_error_t rfm69_set_tx_power(rfm69_t *rfm69, uint8_t tx_power, bool is_high_
             tx_power = 13; // limit for RFM69W
         palevel = RF_PALEVEL_PA0_ON | ((tx_power + 18) & RF_PALEVEL_OUTPUTPOWER_11111);
     }
+    rfm69->_power = tx_power;
     write_register(rfm69, REG_PALEVEL, palevel);
 }
 
-rfm69_error_t rfm69_init(rfm69_t *rfm69)
+rfm69_error_t rfm69_read_fifo(rfm69_t *rfm69){
+    uint8_t length;
+    read_register(rfm69, REG_FIFO, &length);
+    
+    //read the 4 byte header
+    uint8_t header[4];
+    burst_read(rfm69, REG_FIFO, header, 4);
+
+    burst_read(rfm69, REG_FIFO, rfm69->_buffer, length - 4);
+    rfm69->_bufLen = length - 4;
+
+    rfm69->message_available = true;
+}
+
+
+rfm69_error_t rfm69_handle_interrupt(rfm69_t *rfm69) {
+
+    uint8_t interrupt_reason;
+    read_register(rfm69, REG_IRQFLAGS2, &interrupt_reason);
+
+    // if mode is TX and packet sent, return to standby mode
+    if (rfm69->_mode == ModeTx && (interrupt_reason & RF_IRQFLAGS2_PACKETSENT)) {
+        rfm69_set_mode(rfm69, RF_OPMODE_STANDBY);
+        rfm69->_mode = ModeIdle;
+    }
+    // if mode is RX and packet received, read FIFO
+    if (rfm69->_mode == ModeRx && (interrupt_reason & RF_IRQFLAGS2_PAYLOADREADY)) {
+        rfm69_read_fifo(rfm69);
+    }
+}
+
+
+void interrupt_handler(uint gpio, uint32_t events)
 {
+    rfm69_handle_interrupt(rfm69_inst);
+}
+
+
+rfm69_error_t rfm69_init(rfm69_t *rfm69)
+{   
+
+    rfm69_inst = rfm69;
     // Set the reset pin as an output
     gpio_init(rfm69->reset_pin);
     gpio_set_dir(rfm69->reset_pin, GPIO_OUT);
@@ -213,6 +254,9 @@ rfm69_error_t rfm69_init(rfm69_t *rfm69)
     gpio_init(rfm69->cs_pin);
     gpio_set_dir(rfm69->cs_pin, GPIO_OUT);
     gpio_put(rfm69->cs_pin, 1);
+
+    // Set the interrupt handler
+    gpio_set_irq_enabled_with_callback(rfm69->interrupt_pin, GPIO_IRQ_EDGE_RISE, true, &interrupt_handler);
 
     // Reset the RFM69
     rfm69_reset(rfm69);
@@ -275,3 +319,35 @@ rfm69_error_t rfm69_print_registers(rfm69_t *rfm69)
     printf("Register 0x%02X: 0x%02X\n", 0x71, data);
     
 }
+
+
+rfm69_error_t rfm69_set_mode_rx(rfm69_t *rfm69) {
+    if (rfm69->_mode != ModeRx){
+        if (rfm69->_power >= 18) {
+            // If high power boost, return power amp to receive mode
+            write_register(rfm69, REG_TESTPA1, 0x55);
+            write_register(rfm69, REG_TESTPA2, 0x70);
+        }
+        // Set interrupt line 0 PayloadReady
+        write_register(rfm69, REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_01);
+        rfm69_set_mode(rfm69, RF_OPMODE_RECEIVER);
+        rfm69->_mode = ModeRx;
+        return RFM69_OK;
+    }   
+}
+
+bool rfm69_is_message_available(rfm69_t *rfm69) {
+    return rfm69->message_available;
+}
+
+
+rfm69_error_t rfm69_receive(rfm69_t *rfm69, message_t *message) {
+
+    // copy the data from the buffer to the data pointer
+    memcpy(message->data, rfm69->_buffer, rfm69->_bufLen);
+    message->len = rfm69->_bufLen;
+    rfm69->message_available = false;
+    return RFM69_OK;
+}
+
+

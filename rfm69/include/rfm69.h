@@ -1,3 +1,8 @@
+#ifndef RFM69_H
+#define RFM69_H
+
+#include "pico/stdlib.h"
+#include "rfm69_registers.h"
 #include "hardware/spi.h"
 
 // The crystal oscillator frequency of the RF69 module
@@ -48,10 +53,6 @@
 #define RH_RF69_PACKETCONFIG1_ADDRESSFILTERING_NODE_BC      0x04
 #define RH_RF69_PACKETCONFIG1_ADDRESSFILTERING_RESERVED     0x06
 
-// Keep track of the mode the RF69 is in
-#define RF69_MODE_IDLE 0
-#define RF69_MODE_RX 1
-#define RF69_MODE_TX 2
 
 typedef enum
 {
@@ -208,3 +209,60 @@ static const ModemConfig MODEM_CONFIG_TABLE[] =
         //    { CONFIG_FSK,  0x0c, 0x80, 0x02, 0x8f, 0x53, 0x53, CONFIG_WHITE}, // works 10/40/40
 
 };
+
+// RF69 Write Mask
+#define RF69_WRITE_MASK 0x80
+
+typedef enum
+{
+    RFM69_OK = 0,
+    RFM69_SPI_READ_ERROR,
+    RFM69_SPI_WRITE_ERROR,
+} rfm69_error_t;
+
+
+typedef struct rfm69_t
+{
+    spi_inst_t *spi;
+    uint cs_pin;
+    uint interrupt_pin;
+    uint reset_pin;
+    Mode _mode;
+    uint _power;
+    uint8_t _buffer[60];
+    uint8_t _bufLen;
+    bool message_available;
+} rfm69_t;
+
+typedef struct {
+    uint8_t len;
+    uint8_t data[RF69_MAX_MESSAGE_LEN];
+} message_t;
+
+
+
+uint8_t rfm69_get_revision(rfm69_t *rfm69, uint8_t *revision);
+
+// Reset the RFM69 module
+void rfm69_reset(rfm69_t *rfm69);
+
+// Set the operation mode
+rfm69_error_t rfm69_set_mode(rfm69_t *rfm69, uint8_t mode);
+
+rfm69_error_t rfm69_init(rfm69_t *rfm69);
+
+rfm69_error_t rfm69_send(rfm69_t *rfm69, uint8_t *data, uint8_t len);
+
+rfm69_error_t rfm69_set_tx_power(rfm69_t *rfm69, uint8_t tx_power, bool is_high_power_module);
+
+rfm69_error_t rfm69_print_registers(rfm69_t *rfm69);
+
+rfm69_error_t rfm69_set_mode_tx(rfm69_t *rfm69);
+
+rfm69_error_t rfm69_set_mode_rx(rfm69_t *rfm69);
+
+rfm69_error_t rfm69_receive(rfm69_t *rfm69, message_t *message);
+
+bool rfm69_is_message_available(rfm69_t *rfm69);
+
+#endif // RFM69_H
