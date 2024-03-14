@@ -46,6 +46,9 @@ int main()
         while (true) tight_loop_contents();
     }
 
+    // Set the TX power
+    rfm69_set_tx_power(&rfm69, 14, true);
+
     rfm69_print_registers(&rfm69);
     while (true)
     {
@@ -53,6 +56,7 @@ int main()
 
         // Send a message
         uint8_t data[] = "Hello, World!";
+        printf("Sending Message!\n");
         
         rfm69_send(&rfm69, data, sizeof(data));
 

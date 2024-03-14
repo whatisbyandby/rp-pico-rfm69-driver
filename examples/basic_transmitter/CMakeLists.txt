@@ -9,4 +9,8 @@ target_link_libraries(basic_transmitter rfm69)
 # Link to pico_stdlib if you use standard library functions and the pico specific libraries
 target_link_libraries(basic_transmitter pico_stdlib hardware_spi)
 
+# enable usb output, disable uart output
+pico_enable_stdio_usb(basic_transmitter 1)
+pico_enable_stdio_uart(basic_transmitter 1)
+
 pico_add_extra_outputs(basic_transmitter)
