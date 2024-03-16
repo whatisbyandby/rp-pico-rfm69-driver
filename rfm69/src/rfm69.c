@@ -302,9 +302,8 @@ rfm69_error_t rfm69_send(rfm69_t *rfm69, uint8_t *data, uint8_t len)
     uint8_t write_buffer[4] = {0xff, 0xff, 0x00, 0x00};
     burst_write(rfm69, REG_FIFO, write_buffer, 4);
     burst_write(rfm69, REG_FIFO, data, len);
-    // Set the mode to transmit
 
-    rfm69_error_t err = rfm69_set_mode(rfm69, RF_OPMODE_TRANSMITTER);
+    rfm69_error_t err = rfm69_set_mode_tx(rfm69);
 }
 
 rfm69_error_t rfm69_print_registers(rfm69_t *rfm69)
@@ -323,6 +322,21 @@ rfm69_error_t rfm69_print_registers(rfm69_t *rfm69)
     read_register(rfm69, 0x71, &data);
     printf("Register 0x%02X: 0x%02X\n", 0x71, data);
     
+}
+
+rfm69_error_t rfm69_set_mode_tx(rfm69_t *rfm69) {
+    if (rfm69->_mode != ModeTx){
+        if (rfm69->_power >= 18) {
+            // If high power boost, return power amp to transmit mode
+            write_register(rfm69, REG_TESTPA1, 0x5D);
+            write_register(rfm69, REG_TESTPA2, 0x7C);
+        }
+        // Set interrupt line 0 PacketSent
+        write_register(rfm69, REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_00);
+        rfm69_set_mode(rfm69, RF_OPMODE_TRANSMITTER);
+        rfm69->_mode = ModeTx;
+        return RFM69_OK;
+    }   
 }
 
 
