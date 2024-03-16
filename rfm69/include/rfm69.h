@@ -232,11 +232,13 @@ typedef struct rfm69_t
     uint8_t _buffer[60];
     uint8_t _bufLen;
     bool message_available;
+    uint8_t _last_rssi;
 } rfm69_t;
 
 typedef struct {
     uint8_t len;
     uint8_t data[RF69_MAX_MESSAGE_LEN];
+    uint8_t rssi;
 } message_t;
 
 

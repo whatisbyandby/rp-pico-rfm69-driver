@@ -219,6 +219,8 @@ rfm69_error_t rfm69_read_fifo(rfm69_t *rfm69){
 }
 
 
+
+
 rfm69_error_t rfm69_handle_interrupt(rfm69_t *rfm69) {
 
     uint8_t interrupt_reason;
@@ -232,6 +234,9 @@ rfm69_error_t rfm69_handle_interrupt(rfm69_t *rfm69) {
     // if mode is RX and packet received, read FIFO
     if (rfm69->_mode == ModeRx && (interrupt_reason & RF_IRQFLAGS2_PAYLOADREADY)) {
         rfm69_read_fifo(rfm69);
+        uint8_t rssi_raw;
+        read_register(rfm69, REG_RSSIVALUE, &rssi_raw);
+        rfm69->_last_rssi = rssi_raw / 2;
     }
 }
 
@@ -347,6 +352,7 @@ rfm69_error_t rfm69_receive(rfm69_t *rfm69, message_t *message) {
     memcpy(message->data, rfm69->_buffer, rfm69->_bufLen);
     message->len = rfm69->_bufLen;
     rfm69->message_available = false;
+    message->rssi = rfm69->_last_rssi;
     return RFM69_OK;
 }
 

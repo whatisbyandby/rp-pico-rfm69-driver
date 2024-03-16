@@ -65,6 +65,7 @@ int main()
                 printf("%02X ", message.data[i]);
             }
             printf("\n");
+            printf("RSSI: %d\n", message.rssi);
             
         }
 
